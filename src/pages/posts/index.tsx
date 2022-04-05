@@ -1,7 +1,22 @@
+import { GetServerSideProps } from "next";
 import Head from "next/head";
+
+import { createClient } from "../../../prismicio";
+
 import styles from "./styles.module.scss";
 
-const Posts = () => {
+type Post = {
+  slug: string
+  title: string
+  excerpt: string
+  updatedAt: string
+}
+
+interface PostsProps {
+  posts: Post[];
+}
+
+const Posts = ({ posts }: PostsProps) => {
   return (
     <>
       <Head>
@@ -10,32 +25,15 @@ const Posts = () => {
 
       <main className={styles.container}>
         <div className={styles.posts}>
-          <a href="#">
-            <time>12 de março de 2021</time>
-            <strong>Creating a Monorepo with Lerna & Yarn Workspaces</strong>
-            <p>
-              In this guide, you will learn how to create a Monorepo to manage
-              multiple packages with a shared build, test, and release process.
-            </p>
-          </a>
-
-          <a href="#">
-            <time>12 de março de 2021</time>
-            <strong>Creating a Monorepo with Lerna & Yarn Workspaces</strong>
-            <p>
-              In this guide, you will learn how to create a Monorepo to manage
-              multiple packages with a shared build, test, and release process.
-            </p>
-          </a>
-
-          <a href="#">
-            <time>12 de março de 2021</time>
-            <strong>Creating a Monorepo with Lerna & Yarn Workspaces</strong>
-            <p>
-              In this guide, you will learn how to create a Monorepo to manage
-              multiple packages with a shared build, test, and release process.
-            </p>
-          </a>
+          {posts.map(post => (
+            <a href="#" key={post.slug}>
+              <time>{post.updatedAt}</time>
+              <strong>{post.title}</strong>
+              <p>
+                {post.excerpt}
+              </p>
+            </a>
+          ))}
         </div>
       </main>
     </>
@@ -43,3 +41,29 @@ const Posts = () => {
 };
 
 export default Posts;
+
+export const getServerSideProps: GetServerSideProps = async ({ previewData }) => {
+
+  const client = createClient({ previewData });
+
+  const response = await client.getAllByType('post');
+
+  const posts = response.map(post => {
+    return {
+      slug: post.uid,
+      title: post.data.title,
+      excerpt: post.data.content.find((content: any) => content.type === 'paragraph')?.text ?? '',
+      updatedAt: new Date(post.last_publication_date).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+    }
+  });
+
+  return {
+    props: {
+      posts,
+    },
+  }
+} 
